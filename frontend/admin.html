@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpsMind AI — Admin Panel</title>
+    <meta name="description"
+        content="OpsMind AI Admin Panel: Upload, manage, and monitor corporate policy documents." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="css/styles.css" />
+    <style>
+        .admin-shell {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .admin-topbar {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 0 24px;
+            height: 60px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .topbar-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+
+        .topbar-logo .logo-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #4f83ff, #a78bfa);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .topbar-badge {
+            padding: 2px 9px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            background: rgba(167, 139, 250, 0.15);
+            color: #c4b5fd;
+            border: 1px solid rgba(167, 139, 250, 0.3);
+            border-radius: 99px;
+        }
+
+        .topbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            transition: var(--transition);
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            color: var(--text-primary);
+            border-color: var(--border-hover);
+            background: var(--bg-card);
+        }
+
+        .admin-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 28px 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        .section-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .section-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .section-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .upload-inner {
+            padding: 24px;
+        }
+
+        .upload-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .upload-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        #upload-progress {
+            display: none;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 24px;
+            background: rgba(79, 131, 255, 0.05);
+            border-top: 1px solid var(--border);
+        }
+
+        #progress-text {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            min-width: 200px;
+        }
+
+        .doc-table-wrap {
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="admin-shell">
+
+        <!-- ── Top Bar ─────────────────────────────────────────────────────────── -->
+        <header class="admin-topbar">
+            <div class="topbar-logo">
+                <div class="logo-icon">🧠</div>
+                <span>OpsMind AI</span>
+            </div>
+            <span class="topbar-badge">Admin Panel</span>
+
+            <div class="topbar-right">
+                <a href="index.html" class="back-link">← Back to Chat</a>
+            </div>
+        </header>
+
+        <!-- ── Admin Body ─────────────────────────────────────────────────────── -->
+        <main class="admin-body">
+
+            <!-- Page Title -->
+            <div>
+                <h1 class="page-heading">Document Management</h1>
+                <p class="page-sub">Upload, manage, and monitor corporate policy documents in the RAG knowledge base.
+                </p>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-icon">📄</div>
+                    <div class="stat-value" id="stat-docs">—</div>
+                    <div class="stat-label">Documents</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🗂</div>
+                    <div class="stat-value" id="stat-chunks">—</div>
+                    <div class="stat-label">Vector Chunks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💬</div>
+                    <div class="stat-value" id="stat-queries">—</div>
+                    <div class="stat-label">Queries (24h)</div>
+                </div>
+            </div>
+
+            <!-- Upload Section -->
+            <div class="section-card">
+                <div class="section-header">
+                    <div>
+                        <div class="section-title">📤 Upload Documents</div>
+                        <div class="section-sub">Drag & drop PDF files or click to browse. Multiple files supported.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="upload-inner">
+                    <div class="upload-zone" id="upload-zone">
+                        <input type="file" id="file-input" accept=".pdf" multiple />
+                        <div class="upload-zone-icon">📂</div>
+                        <div class="upload-zone-title">Drop PDF files here or click to browse</div>
+                        <div class="upload-zone-sub">Only .pdf files are accepted · Re-uploading replaces existing
+                            chunks</div>
+                    </div>
+
+                    <div class="upload-actions">
+                        <span class="upload-hint">ℹ Files are parsed, chunked (1000 chars / 200 overlap) and embedded
+                            into the vector store automatically.</span>
+                    </div>
+                </div>
+
+                <!-- Progress -->
+                <div id="upload-progress">
+                    <span id="progress-text">Uploading…</span>
+                    <div class="progress-bar-wrap" style="flex:1">
+                        <div class="progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documents Table -->
+            <div class="section-card">
+                <div class="section-header">
+                    <div>
+                        <div class="section-title">📚 Knowledge Base</div>
+                        <div class="section-sub">
+                            <span id="doc-count">0</span> documents in the vector store
+                        </div>
+                    </div>
+                    <button class="btn btn-ghost" id="refresh-btn">↻ Refresh</button>
+                </div>
+
+                <div class="doc-table-wrap">
+                    <table class="doc-table" id="doc-table">
+                        <thead>
+                            <tr>
+                                <th>Document</th>
+                                <th>Chunks</th>
+                                <th>Last Uploaded</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="doc-tbody">
+                            <tr>
+                                <td colspan="4">
+                                    <div class="empty-state">
+                                        <div class="empty-state-icon">📂</div>
+                                        <div>Loading documents…</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="section-card" style="padding: 20px 24px; border-color: rgba(79, 131, 255, 0.2);">
+                <div style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.7;">
+                    <strong style="color: var(--accent-light);">⚡ How the RAG pipeline works:</strong><br />
+                    PDF → PyMuPDF text extraction (page-by-page) → RecursiveCharacterTextSplitter
+                    (chunk: 1000 chars, overlap: 200) → Gemini <code>text-embedding-004</code> embeddings →
+                    MongoDB Atlas Vector Search (cosine similarity, top-5 candidates) →
+                    Threshold filter (≥ 0.75) → Gemini 2.5 Flash generation with citation guardrail.
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="js/admin.js"></script>
+</body>
+
+</html>
