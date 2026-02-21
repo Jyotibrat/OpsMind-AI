@@ -1,208 +1,157 @@
 /**
  * frontend/js/chat.js
- * Chat page logic for OpsMind AI employee Q&A interface
+ * Chat interface logic — sends auth headers with every request.
  */
 
-const API_BASE = window.location.origin;
+document.addEventListener('DOMContentLoaded', () => {
+  // Guard: must be logged in
+  const user = Auth.requireAuth();
+  if (!user) return;
+  Auth.populateSidebarUser();
 
-const chatMessages  = document.getElementById('chat-messages');
-const chatInput     = document.getElementById('chat-input');
-const sendBtn       = document.getElementById('send-btn');
-const welcomeState  = document.getElementById('welcome-state');
+  const input = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('send-btn');
+  const messages = document.getElementById('messages');
+  const welcome = document.getElementById('welcome');
 
-let isLoading = false;
-
-// ── Quick Chips ──────────────────────────────────────────────────────────────
-document.querySelectorAll('.chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    chatInput.value = chip.dataset.q;
-    chatInput.dispatchEvent(new Event('input'));
-    sendMessage();
+  // Enable send when there is text
+  input.addEventListener('input', () => {
+    sendBtn.disabled = !input.value.trim();
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
   });
-});
 
-// ── Auto-resize textarea ──────────────────────────────────────────────────────
-chatInput.addEventListener('input', () => {
-  chatInput.style.height = 'auto';
-  chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
-  sendBtn.disabled = !chatInput.value.trim() || isLoading;
-});
+  // Send on Enter (Shift+Enter = newline)
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!sendBtn.disabled) sendMessage();
+    }
+  });
 
-// ── Enter to send (Shift+Enter for newline) ────────────────────────────────────
-chatInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    if (!sendBtn.disabled) sendMessage();
+  sendBtn.addEventListener('click', sendMessage);
+
+  async function sendMessage() {
+    const question = input.value.trim();
+    if (!question) return;
+
+    // Hide welcome state
+    if (welcome) welcome.style.display = 'none';
+
+    // Render user message
+    appendUserMessage(question);
+    input.value = '';
+    input.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    // Thinking indicator
+    const thinkingEl = appendThinking();
+
+    try {
+      const res = await fetch('/ask', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...Auth.authHeaders(),
+        },
+        body: JSON.stringify({ question }),
+      });
+
+      thinkingEl.remove();
+
+      if (res.status === 401) {
+        Auth.logout();
+        return;
+      }
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        appendBotMessage(`⚠ ${data.detail || 'An error occurred.'}`, [], 0);
+        return;
+      }
+
+      appendBotMessage(data.answer, data.citations || [], data.confidence_score || 0, data.retrieved_chunks);
+
+    } catch (err) {
+      thinkingEl.remove();
+      Auth.showToast('Network error. Please try again.', 'error');
+    }
   }
-});
 
-sendBtn.addEventListener('click', sendMessage);
+  function appendUserMessage(text) {
+    const user = Auth.getUser();
+    const initial = (user?.display_name || 'U').charAt(0).toUpperCase();
 
-// ── Send Message ──────────────────────────────────────────────────────────────
-async function sendMessage() {
-  const question = chatInput.value.trim();
-  if (!question || isLoading) return;
+    const div = document.createElement('div');
+    div.className = 'msg user';
+    div.innerHTML = `
+      <div class="msg-av">${Auth.escapeHtml(initial)}</div>
+      <div class="msg-body">
+        <div class="msg-bubble">${Auth.escapeHtml(text)}</div>
+      </div>`;
+    messages.appendChild(div);
+    scrollBottom();
+  }
 
-  // Hide welcome state on first message
-  if (welcomeState) welcomeState.style.display = 'none';
+  function appendThinking() {
+    const div = document.createElement('div');
+    div.className = 'msg bot';
+    div.innerHTML = `
+      <div class="msg-av">🧠</div>
+      <div class="msg-body">
+        <div class="thinking">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+      </div>`;
+    messages.appendChild(div);
+    scrollBottom();
+    return div;
+  }
 
-  // Append user bubble
-  appendMessage('user', question);
-  chatInput.value = '';
-  chatInput.style.height = 'auto';
-  sendBtn.disabled = true;
-  isLoading = true;
+  function appendBotMessage(answer, citations, confidence, chunks) {
+    const isFallback = !citations || citations.length === 0;
+    const pct = Math.round((confidence || 0) * 100);
+    const confColor = pct >= 80 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444';
 
-  // Show thinking bubble
-  const thinkingEl = appendThinking();
-
-  try {
-    const res = await fetch(`${API_BASE}/ask`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || `HTTP ${res.status}`);
+    let citHtml = '';
+    if (!isFallback && citations.length > 0) {
+      const pills = citations.map(c =>
+        `<span class="citation-pill">📄 ${Auth.escapeHtml(c.source)} · p.${c.page}</span>`
+      ).join('');
+      citHtml = `
+        <div class="citations">
+          <div class="citations-label">Sources</div>
+          <div>${pills}</div>
+          <div class="conf-row">
+            <span>Confidence</span>
+            <div class="conf-track"><div class="conf-fill" style="width:${pct}%;background:${confColor}"></div></div>
+            <span style="color:${confColor};font-weight:600">${pct}%</span>
+            ${chunks ? `<span>· ${chunks} chunk${chunks !== 1 ? 's' : ''} searched</span>` : ''}
+          </div>
+        </div>`;
     }
 
-    const data = await res.json();
-    thinkingEl.remove();
-    appendAssistantMessage(data);
-
-  } catch (err) {
-    thinkingEl.remove();
-    appendMessage('assistant', `⚠️ Error: ${err.message}`, true);
-    showToast(`Request failed: ${err.message}`, 'error');
-  } finally {
-    isLoading = false;
-    sendBtn.disabled = false;
-    chatInput.focus();
-  }
-}
-
-// ── Append User / Simple Bubble ────────────────────────────────────────────────
-function appendMessage(role, text, isError = false) {
-  const div = document.createElement('div');
-  div.className = `message ${role}`;
-
-  const avatar = document.createElement('div');
-  avatar.className = 'msg-avatar';
-  avatar.textContent = role === 'user' ? '👤' : '🤖';
-
-  const bubble = document.createElement('div');
-  bubble.className = 'msg-bubble';
-  if (isError) bubble.style.color = 'var(--danger)';
-  bubble.textContent = text;
-
-  div.appendChild(avatar);
-  div.appendChild(bubble);
-  chatMessages.appendChild(div);
-  scrollToBottom();
-  return div;
-}
-
-// ── Thinking Bubble ────────────────────────────────────────────────────────────
-function appendThinking() {
-  const div = document.createElement('div');
-  div.className = 'message assistant';
-
-  const avatar = document.createElement('div');
-  avatar.className = 'msg-avatar';
-  avatar.textContent = '🤖';
-
-  const bubble = document.createElement('div');
-  bubble.className = 'thinking-bubble';
-  bubble.innerHTML = `
-    <span class="dot-bounce"></span>
-    <span class="dot-bounce"></span>
-    <span class="dot-bounce"></span>
-  `;
-
-  div.appendChild(avatar);
-  div.appendChild(bubble);
-  chatMessages.appendChild(div);
-  scrollToBottom();
-  return div;
-}
-
-// ── Append Full Assistant Response ─────────────────────────────────────────────
-function appendAssistantMessage(data) {
-  const div = document.createElement('div');
-  div.className = 'message assistant';
-
-  const avatar = document.createElement('div');
-  avatar.className = 'msg-avatar';
-  avatar.textContent = '🤖';
-
-  const bubble = document.createElement('div');
-  bubble.className = 'msg-bubble';
-
-  // Answer text (render line breaks)
-  const answerP = document.createElement('div');
-  answerP.style.whiteSpace = 'pre-wrap';
-  answerP.textContent = data.answer;
-  bubble.appendChild(answerP);
-
-  // Citations block
-  if (data.citations && data.citations.length > 0) {
-    const citBlock = document.createElement('div');
-    citBlock.className = 'citations-block';
-
-    const label = document.createElement('div');
-    label.className = 'citations-label';
-    label.textContent = '📚 Sources';
-    citBlock.appendChild(label);
-
-    const tagsWrap = document.createElement('div');
-    data.citations.forEach(cit => {
-      const tag = document.createElement('span');
-      tag.className = 'citation-tag';
-      tag.innerHTML = `📄 ${escapeHtml(cit.source)} · p.${cit.page}`;
-      tagsWrap.appendChild(tag);
-    });
-    citBlock.appendChild(tagsWrap);
-
-    // Confidence bar
-    const conf = data.confidence_score || 0;
-    const barWrap = document.createElement('div');
-    barWrap.className = 'confidence-bar-wrap';
-    barWrap.innerHTML = `
-      <span>Confidence</span>
-      <div class="confidence-bar">
-        <div class="confidence-fill" style="width: ${Math.round(conf * 100)}%"></div>
-      </div>
-      <span>${Math.round(conf * 100)}%</span>
-    `;
-    citBlock.appendChild(barWrap);
-    bubble.appendChild(citBlock);
+    const div = document.createElement('div');
+    div.className = 'msg bot';
+    div.innerHTML = `
+      <div class="msg-av">🧠</div>
+      <div class="msg-body">
+        <div class="msg-bubble">${Auth.escapeHtml(answer)}</div>
+        ${citHtml}
+      </div>`;
+    messages.appendChild(div);
+    scrollBottom();
   }
 
-  div.appendChild(avatar);
-  div.appendChild(bubble);
-  chatMessages.appendChild(div);
-  scrollToBottom();
-}
+  function scrollBottom() {
+    messages.scrollTo({ top: messages.scrollHeight, behavior: 'smooth' });
+  }
 
-function scrollToBottom() {
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-function escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-// ── Toast (shared) ────────────────────────────────────────────────────────────
-function showToast(msg, type = 'info') {
-  const container = document.getElementById('toast-container');
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  const icons = { success: '✓', error: '✗', info: 'ℹ' };
-  toast.innerHTML = `<span>${icons[type]}</span><span>${escapeHtml(msg)}</span>`;
-  container.appendChild(toast);
-  setTimeout(() => toast.remove(), 3200);
-}
-
-window.showToast = showToast;
+  // Quick chip handler
+  window.useChip = function (btn) {
+    input.value = btn.textContent.replace(/^[^\w]+/, '').trim();
+    input.dispatchEvent(new Event('input'));
+    sendMessage();
+  };
+});

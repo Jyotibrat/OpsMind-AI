@@ -1,186 +1,187 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpsMind AI — Employee Assistant</title>
-  <meta name="description" content="OpsMind AI: Ask questions about company policies and get answers grounded in official documents." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="css/styles.css" />
-  <style>
-    /* Page-specific overrides for single-page layout */
-    .chat-only-shell {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    .chat-only-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 24px;
-      height: 60px;
-      background: var(--bg-secondary);
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .header-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 1.05rem;
-      font-weight: 700;
-    }
-
-    .header-logo .logo-icon {
-      width: 34px;
-      height: 34px;
-      border-radius: 9px;
-      background: linear-gradient(135deg, #4f83ff, #a78bfa);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-    }
-
-    .header-badge {
-      padding: 2px 9px;
-      font-size: 0.65rem;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      background: rgba(79, 131, 255, 0.15);
-      color: var(--accent-light);
-      border: 1px solid rgba(79, 131, 255, 0.3);
-      border-radius: 99px;
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .status-indicator {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-    }
-
-    .admin-link {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 7px 14px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      font-size: 0.82rem;
-      color: var(--text-secondary);
-      transition: var(--transition);
-      font-weight: 500;
-    }
-
-    .admin-link:hover {
-      color: var(--text-primary);
-      border-color: var(--border-hover);
-      background: var(--bg-card);
-    }
-
-    .chat-body {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-  </style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>OpsMind AI — Sign In</title>
+  <meta name="description" content="Sign in to OpsMind AI — your enterprise knowledge assistant."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="stylesheet" href="css/styles.css"/>
 </head>
-<body>
+<body style="overflow:auto">
 
-<div class="chat-only-shell">
+<div class="login-page">
 
-  <!-- ── Top Bar ─────────────────────────────────────────────────────────── -->
-  <header class="chat-only-header">
-    <div class="header-left">
-      <div class="header-logo">
-        <div class="logo-icon">🧠</div>
-        <span>OpsMind AI</span>
-      </div>
-      <span class="header-badge">RAG · Gemini 2.5 Flash</span>
+  <!-- ── Left branding panel ───────────────────────────────────────── -->
+  <div class="login-left">
+    <div class="login-left-bg">
+      <div class="aurora aurora-1"></div>
+      <div class="aurora aurora-2"></div>
+      <div class="aurora aurora-3"></div>
     </div>
 
-    <div class="header-right">
-      <div class="status-indicator">
-        <span class="online-dot"></span>
-        Online
-      </div>
-      <a href="admin.html" class="admin-link">⚙️ Admin Panel</a>
-    </div>
-  </header>
+    <div class="login-left-content">
+      <div class="login-brand-logo">🧠</div>
+      <div class="login-brand-name">OpsMind AI</div>
+      <p class="login-brand-tagline">
+        Enterprise knowledge assistant powered by Gemini 2.5 Flash and MongoDB Atlas Vector Search.
+        Ask questions, get answers grounded in official policy documents.
+      </p>
 
-  <!-- ── Chat Body ──────────────────────────────────────────────────────── -->
-  <main class="chat-body">
-
-    <!-- Messages -->
-    <div class="chat-messages" id="chat-messages">
-      <div class="chat-welcome" id="welcome-state">
-
-        <div class="welcome-icon">🧠</div>
-        <h1 class="welcome-title">OpsMind AI</h1>
-        <p class="welcome-sub">
-          Ask any question about company policies and I'll answer strictly from
-          the official documents — with page citations and confidence scores.
-        </p>
-
-        <div class="quick-chips">
-          <button class="chip" data-q="What is the annual leave entitlement?">📅 Leave Policy</button>
-          <button class="chip" data-q="What are the remote work guidelines?">🏠 Remote Work</button>
-          <button class="chip" data-q="How are travel expenses reimbursed?">✈️ Travel Reimbursement</button>
-          <button class="chip" data-q="What is the IT security policy?">🔐 IT Security</button>
-          <button class="chip" data-q="How can I raise a grievance?">📢 Grievance Policy</button>
-          <button class="chip" data-q="What are the payroll guidelines?">💰 Payroll</button>
+      <div class="login-features">
+        <div class="login-feature">
+          <div class="login-feature-icon">🔍</div>
+          <div>Semantic search across all corporate policy documents</div>
         </div>
-
+        <div class="login-feature">
+          <div class="login-feature-icon">📚</div>
+          <div>Every answer cited with source file and page number</div>
+        </div>
+        <div class="login-feature">
+          <div class="login-feature-icon">🛡</div>
+          <div>Hallucination guardrails — no fabricated information</div>
+        </div>
+        <div class="login-feature">
+          <div class="login-feature-icon">⭐</div>
+          <div>Admin controls for document ingestion and management</div>
+        </div>
       </div>
     </div>
+  </div>
 
-    <!-- Input Area -->
-    <div class="chat-input-area">
-      <div class="chat-input-row">
-        <textarea
-          id="chat-input"
-          class="chat-input"
-          placeholder="Ask about company policies…"
-          rows="1"
-          aria-label="Ask a question"
-        ></textarea>
-        <button class="send-btn" id="send-btn" disabled title="Send (Enter)">
-          ➤
+  <!-- ── Right form panel ──────────────────────────────────────────── -->
+  <div class="login-right">
+    <div class="login-form-card">
+
+      <div class="login-form-header">
+        <div class="login-form-title">Welcome back</div>
+        <div class="login-form-sub">Sign in to access your knowledge assistant</div>
+      </div>
+
+      <!-- Role tabs -->
+      <div class="role-tabs">
+        <button class="role-tab employee active" id="tab-employee" onclick="setRole('employee')">
+          👤 Employee
+        </button>
+        <button class="role-tab admin" id="tab-admin" onclick="setRole('admin')">
+          ⭐ Admin
         </button>
       </div>
-      <p class="input-disclaimer">
-        Answers are grounded in official corporate documents only · Powered by Gemini 2.5 Flash
-      </p>
+
+      <!-- Login form -->
+      <form id="login-form" onsubmit="handleLogin(event)">
+
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          <div class="form-input-wrap">
+            <span class="form-input-icon">👤</span>
+            <input
+              id="username"
+              class="form-input"
+              type="text"
+              placeholder="Enter your username"
+              autocomplete="username"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <div class="form-input-wrap">
+            <span class="form-input-icon">🔒</span>
+            <input
+              id="password"
+              class="form-input"
+              type="password"
+              placeholder="Enter your password"
+              autocomplete="current-password"
+              required
+            />
+            <span class="pwd-toggle" id="pwd-toggle" onclick="togglePwd()">👁</span>
+          </div>
+        </div>
+
+        <div class="login-error" id="login-error"></div>
+
+        <button class="login-btn" type="submit" id="login-btn">
+          Sign In →
+        </button>
+
+      </form>
+
+      <div class="default-creds">
+        <strong>Default credentials</strong><br/>
+        Admin &nbsp;— username: <strong>admin</strong> &nbsp;/ password: <strong>admin123</strong><br/>
+        Employee — username: <strong>employee</strong> / password: <strong>employee123</strong><br/>
+        <span style="margin-top:4px;display:block;color:var(--danger);font-size:.7rem">⚠ Change these in your .env before production use.</span>
+      </div>
+
     </div>
-
-  </main>
-
+  </div>
 </div>
 
-<!-- Toast Container -->
-<div class="toast-container" id="toast-container"></div>
+<script src="js/auth.js"></script>
+<script>
+  // Redirect if already logged in
+  (function() {
+    const token = localStorage.getItem('opsmind_token');
+    const user  = JSON.parse(localStorage.getItem('opsmind_user') || 'null');
+    if (token && user) {
+      window.location.href = user.role === 'admin' ? '/app/admin.html' : '/app/chat.html';
+    }
+  })();
 
-<script src="js/chat.js"></script>
+  let selectedRole = 'employee';
+
+  function setRole(role) {
+    selectedRole = role;
+    document.getElementById('tab-employee').className = `role-tab employee${role==='employee'?' active':''}`;
+    document.getElementById('tab-admin').className    = `role-tab admin${role==='admin'?' active':''}`;
+    // Pre-fill username hint
+    document.getElementById('username').placeholder =
+      role === 'admin' ? 'admin' : 'employee';
+  }
+
+  function togglePwd() {
+    const inp = document.getElementById('password');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    const btn = document.getElementById('login-btn');
+    const errEl = document.getElementById('login-error');
+    errEl.classList.remove('visible');
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    try {
+      const res = await fetch('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Login failed');
+
+      Auth.saveAuth(data);
+
+      // Redirect by role
+      window.location.href = data.role === 'admin' ? '/app/admin.html' : '/app/chat.html';
+
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.classList.add('visible');
+      btn.disabled = false;
+      btn.textContent = 'Sign In →';
+    }
+  }
+</script>
 </body>
 </html>

@@ -1,199 +1,173 @@
 /**
  * frontend/js/admin.js
- * Admin panel logic: upload PDFs, list/delete documents, view stats
+ * Admin panel logic — upload, list, delete, stats (auth-protected).
  */
 
-const API_BASE = window.location.origin;
-
-// ── State ─────────────────────────────────────────────────────────────────────
-let currentDocuments = [];
-
-// ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+    // Guard: admin only
+    const user = Auth.requireAuth('admin');
+    if (!user) return;
+    Auth.populateSidebarUser();
+
     loadStats();
     loadDocuments();
-    initUploadZone();
+    initUpload();
 });
 
-// ── Stats ─────────────────────────────────────────────────────────────────────
+// ── Stats ────────────────────────────────────────────────────────────────────
+
 async function loadStats() {
     try {
-        const res = await fetch(`${API_BASE}/dashboard/stats`);
-        if (!res.ok) throw new Error('Stats unavailable');
+        const res = await fetch('/dashboard/stats', { headers: Auth.authHeaders() });
+        if (res.status === 401) { Auth.logout(); return; }
         const data = await res.json();
-
-        setStatValue('stat-docs', data.total_documents ?? 0);
-        setStatValue('stat-chunks', data.total_chunks ?? 0);
-        setStatValue('stat-queries', data.recent_queries ?? 0);
-    } catch {
-        ['stat-docs', 'stat-chunks', 'stat-queries'].forEach(id => setStatValue(id, '—'));
+        animateCounter('stat-docs', data.total_documents ?? 0);
+        animateCounter('stat-chunks', data.total_chunks ?? 0);
+        animateCounter('stat-queries', data.recent_queries ?? 0);
+    } catch (e) {
+        console.warn('Stats load failed', e);
     }
 }
 
-function setStatValue(id, value) {
+function animateCounter(id, target) {
     const el = document.getElementById(id);
-    if (el) el.textContent = value;
+    if (!el) return;
+    let current = 0;
+    const step = Math.max(1, Math.round(target / 30));
+    const timer = setInterval(() => {
+        current = Math.min(current + step, target);
+        el.textContent = current.toLocaleString();
+        if (current >= target) clearInterval(timer);
+    }, 30);
 }
 
-// ── Upload Zone ───────────────────────────────────────────────────────────────
-function initUploadZone() {
-    const zone = document.getElementById('upload-zone');
-    const input = document.getElementById('file-input');
-    const progress = document.getElementById('upload-progress');
-    const progressText = document.getElementById('progress-text');
+// ── Documents ────────────────────────────────────────────────────────────────
 
-    // Drag & drop
-    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
-    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-    zone.addEventListener('drop', e => {
-        e.preventDefault();
-        zone.classList.remove('dragover');
-        handleFiles(Array.from(e.dataTransfer.files));
-    });
+async function loadDocuments() {
+    const tbody = document.getElementById('doc-tbody');
+    const label = document.getElementById('doc-count-label');
+    tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="empty-state-icon">⏳</div>Loading…</div></td></tr>`;
 
-    input.addEventListener('change', () => handleFiles(Array.from(input.files || [])));
+    try {
+        const res = await fetch('/list-documents', { headers: Auth.authHeaders() });
+        if (res.status === 401) { Auth.logout(); return; }
+        const data = await res.json();
+        const docs = data.documents || [];
 
-    async function handleFiles(files) {
-        const pdfs = files.filter(f => f.name.toLowerCase().endsWith('.pdf'));
-        if (pdfs.length === 0) {
-            showToast('Please upload PDF files only.', 'error');
+        label.textContent = `${docs.length} document${docs.length !== 1 ? 's' : ''} in knowledge base`;
+
+        if (docs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="empty-state-icon">📂</div>No documents yet. Upload your first PDF!</div></td></tr>`;
             return;
         }
 
-        progress.style.display = 'flex';
+        tbody.innerHTML = docs.map(doc => {
+            const date = doc.uploaded_at
+                ? new Date(doc.uploaded_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                : '—';
+            return `
+        <tr>
+          <td>
+            <div class="doc-name-cell">
+              <div class="doc-icon-box">📄</div>
+              ${Auth.escapeHtml(doc.source)}
+            </div>
+          </td>
+          <td><span class="chunk-tag">${doc.chunk_count.toLocaleString()} chunks</span></td>
+          <td style="color:var(--text-2);font-size:.8rem">${date}</td>
+          <td style="text-align:right">
+            <button class="btn btn-danger" onclick="deleteDoc('${Auth.escapeHtml(doc.source)}')">
+              🗑 Delete
+            </button>
+          </td>
+        </tr>`;
+        }).join('');
 
-        for (const file of pdfs) {
-            if (progressText) progressText.textContent = `Uploading ${file.name}…`;
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            try {
-                const res = await fetch(`${API_BASE}/upload-documents`, {
-                    method: 'POST',
-                    body: formData,
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-                showToast(`✓ ${file.name} — ${data.chunks_ingested} chunks ingested`, 'success');
-            } catch (err) {
-                showToast(`✗ ${file.name}: ${err.message}`, 'error');
-            }
-        }
-
-        progress.style.display = 'none';
-        input.value = '';
-        await loadStats();
-        await loadDocuments();
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state">⚠ Failed to load documents.</div></td></tr>`;
     }
 }
 
-// ── Load Document List ────────────────────────────────────────────────────────
-async function loadDocuments() {
-    const tbody = document.getElementById('doc-tbody');
-    if (!tbody) return;
-
-    tbody.innerHTML = `<tr><td colspan="4" class="empty-state"><div class="empty-state-icon">⏳</div>Loading…</td></tr>`;
+window.deleteDoc = async function (filename) {
+    if (!confirm(`Delete "${filename}" and all its embedded chunks?\nThis cannot be undone.`)) return;
 
     try {
-        const res = await fetch(`${API_BASE}/list-documents`);
-        if (!res.ok) throw new Error('Failed to load documents');
-        const data = await res.json();
-        currentDocuments = data.documents || [];
-        renderDocumentTable(currentDocuments);
-    } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="4" class="empty-state">
-      <div class="empty-state-icon">⚠️</div>
-      <div>Failed to load documents: ${escapeHtml(err.message)}</div>
-    </td></tr>`;
-    }
-}
-
-function renderDocumentTable(documents) {
-    const tbody = document.getElementById('doc-tbody');
-    const countEl = document.getElementById('doc-count');
-    if (countEl) countEl.textContent = documents.length;
-
-    if (documents.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4">
-      <div class="empty-state">
-        <div class="empty-state-icon">📂</div>
-        <div>No documents ingested yet. Upload a PDF above to get started.</div>
-      </div>
-    </td></tr>`;
-        return;
-    }
-
-    tbody.innerHTML = documents.map((doc, idx) => {
-        const uploadedAt = doc.uploaded_at
-            ? new Date(doc.uploaded_at).toLocaleString()
-            : '—';
-        return `
-      <tr>
-        <td>
-          <div class="doc-name">
-            <div class="doc-icon">📄</div>
-            <span>${escapeHtml(doc.source)}</span>
-          </div>
-        </td>
-        <td><span class="chunk-badge">${doc.chunk_count} chunks</span></td>
-        <td style="color: var(--text-secondary); font-size: 0.8rem;">${uploadedAt}</td>
-        <td>
-          <button class="btn btn-danger" onclick="deleteDocument('${escapeAttr(doc.source)}')">
-            🗑 Delete
-          </button>
-        </td>
-      </tr>
-    `;
-    }).join('');
-}
-
-// ── Delete Document ───────────────────────────────────────────────────────────
-async function deleteDocument(filename) {
-    if (!confirm(`Delete "${filename}" and all its chunks? This cannot be undone.`)) return;
-
-    try {
-        const res = await fetch(`${API_BASE}/delete-document/${encodeURIComponent(filename)}`, {
+        const res = await fetch(`/delete-document/${encodeURIComponent(filename)}`, {
             method: 'DELETE',
+            headers: Auth.authHeaders(),
         });
+        if (res.status === 401) { Auth.logout(); return; }
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-
-        showToast(`Deleted "${filename}" (${data.deleted_chunks} chunks removed)`, 'success');
-        await loadStats();
-        await loadDocuments();
-    } catch (err) {
-        showToast(`Delete failed: ${err.message}`, 'error');
+        if (!res.ok) { Auth.showToast(data.detail || 'Delete failed', 'error'); return; }
+        Auth.showToast(`Deleted "${filename}"`, 'success');
+        loadDocuments();
+        loadStats();
+    } catch {
+        Auth.showToast('Network error', 'error');
     }
+};
+
+// ── Upload ───────────────────────────────────────────────────────────────────
+
+function initUpload() {
+    const zone = document.getElementById('upload-zone');
+    const input = document.getElementById('file-input');
+
+    // Click on zone triggers file picker
+    zone.addEventListener('click', () => input.click());
+
+    // Drag and drop
+    zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+        uploadFiles([...e.dataTransfer.files].filter(f => f.name.endsWith('.pdf')));
+    });
+
+    input.addEventListener('change', () => {
+        uploadFiles([...input.files]);
+        input.value = '';
+    });
 }
 
-window.deleteDocument = deleteDocument;
+async function uploadFiles(files) {
+    if (!files.length) { Auth.showToast('Please select PDF files only.', 'error'); return; }
 
-// ── Refresh ───────────────────────────────────────────────────────────────────
-document.getElementById('refresh-btn')?.addEventListener('click', async () => {
-    await loadStats();
-    await loadDocuments();
-    showToast('Refreshed', 'info');
-});
+    const progressWrap = document.getElementById('upload-progress');
+    const progressLabel = document.getElementById('upload-progress-label');
+    progressWrap.style.display = 'flex';
 
-// ── Utilities ─────────────────────────────────────────────────────────────────
-function escapeHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        progressLabel.textContent = `Uploading ${i + 1}/${files.length}: ${file.name}`;
+
+        const fd = new FormData();
+        fd.append('file', file);
+
+        try {
+            const res = await fetch('/upload-documents', {
+                method: 'POST',
+                headers: Auth.authHeaders(),
+                body: fd,
+            });
+            if (res.status === 401) { Auth.logout(); return; }
+            const data = await res.json();
+            if (!res.ok) {
+                Auth.showToast(`Failed: ${data.detail || file.name}`, 'error');
+            } else {
+                Auth.showToast(`✓ ${file.name} — ${data.chunks_ingested} chunks`, 'success');
+            }
+        } catch {
+            Auth.showToast(`Network error uploading ${file.name}`, 'error');
+        }
+    }
+
+    progressWrap.style.display = 'none';
+    loadDocuments();
+    loadStats();
 }
 
-function escapeAttr(str) {
-    return String(str).replace(/'/g, "\\'");
-}
-
-function showToast(msg, type = 'info') {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    const icons = { success: '✓', error: '✗', info: 'ℹ' };
-    toast.innerHTML = `<span>${icons[type] || 'ℹ'}</span><span>${escapeHtml(msg)}</span>`;
-    container.appendChild(toast);
-    setTimeout(() => toast.remove(), 3500);
-}
+// Expose for sidebar refresh button
+window.loadStats = loadStats;
+window.loadDocuments = loadDocuments;

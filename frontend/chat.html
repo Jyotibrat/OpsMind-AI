@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>OpsMind AI — Chat</title>
+    <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body>
+    <div class="app-shell">
+
+        <!-- ── Sidebar ──────────────────────────────────────────────── -->
+        <aside class="sidebar">
+            <div class="sidebar-top">
+                <div class="brand">
+                    <div class="brand-icon">🧠</div>
+                    <div class="brand-name">OpsMind AI</div>
+                </div>
+                <div class="brand-version">v1.0 · Enterprise</div>
+            </div>
+
+            <div class="sidebar-user">
+                <div class="user-row">
+                    <div class="user-avatar" id="sidebar-avatar">U</div>
+                    <div class="user-meta">
+                        <div class="user-name" id="sidebar-username">Loading…</div>
+                        <div class="role-badge" id="sidebar-role">…</div>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-group-label">Navigation</div>
+                <div class="nav-item active">
+                    <span class="ni">💬</span> Chat
+                </div>
+                <div class="nav-item" data-admin-only onclick="window.location.href='/app/admin.html'">
+                    <span class="ni">📂</span> Document Management
+                </div>
+
+                <div class="nav-group-label">Info</div>
+                <div class="nav-item" title="Answers are grounded in your corporate documents">
+                    <span class="ni">📖</span> Policy Documents
+                </div>
+                <div class="nav-item" title="Vector Search + Gemini 2.5 Flash">
+                    <span class="ni">⚡</span> Gemini 2.5 Flash
+                </div>
+            </nav>
+
+            <div class="sidebar-bottom">
+                <button class="logout-btn" id="logout-btn">
+                    <span>🚪</span> Sign Out
+                </button>
+            </div>
+        </aside>
+
+        <!-- ── Main ─────────────────────────────────────────────────── -->
+        <div class="main">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <div class="page-header-title">Policy Assistant</div>
+                    <div class="page-header-sub">Ask any question about corporate documents</div>
+                </div>
+                <div class="online-pill">
+                    <div class="pulse"></div>Online
+                </div>
+            </div>
+
+            <div class="chat-area">
+                <div class="messages" id="messages">
+
+                    <!-- Welcome state -->
+                    <div class="welcome" id="welcome">
+                        <div class="welcome-orb">🧠</div>
+                        <h2>How can I help you today?</h2>
+                        <p>Ask me anything about the company's policies, benefits, procedures, or guidelines. I'll
+                            answer with citations.</p>
+                        <div class="chips" id="chips">
+                            <button class="chip" onclick="useChip(this)">📅 Annual leave policy</button>
+                            <button class="chip" onclick="useChip(this)">🏥 Medical benefits</button>
+                            <button class="chip" onclick="useChip(this)">💼 Work from home rules</button>
+                            <button class="chip" onclick="useChip(this)">📋 Expense reimbursement</button>
+                            <button class="chip" onclick="useChip(this)">🎓 Training programs</button>
+                            <button class="chip" onclick="useChip(this)">🛡 Data privacy policy</button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="chat-input-area">
+                    <div class="input-box">
+                        <textarea class="chat-ta" id="chat-input" placeholder="Ask a question about company policies…"
+                            rows="1"></textarea>
+                        <button class="send-btn" id="send-btn" title="Send" disabled>➤</button>
+                    </div>
+                    <div class="input-hint">Answers are grounded in uploaded policy documents only</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/chat.js"></script>
+</body>
+
+</html>

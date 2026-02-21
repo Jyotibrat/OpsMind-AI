@@ -14,6 +14,7 @@ Prerequisites:
 
 import sys
 import os
+import certifi
 
 # Allow imports from project root
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -34,7 +35,7 @@ def create_vector_index() -> None:
     from pymongo.operations import SearchIndexModel
 
     print(f"Connecting to MongoDB Atlas: {settings.MONGODB_URI[:40]}…")
-    client = MongoClient(settings.MONGODB_URI)
+    client = MongoClient(settings.MONGODB_URI, tlsCAFile=certifi.where())
     db = client[settings.DB_NAME]
 
     # ── Ensure the collection exists ─────────────────────────────────────────
