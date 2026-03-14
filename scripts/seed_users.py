@@ -65,7 +65,7 @@ def seed_users() -> None:
             print(f"  ✓ Created {u['role']} user: '{u['username']}'")
 
     client.close()
-    print("\n✓ User seeding complete! You can now log in at http://localhost:8000/app/")
+    print("\n✓ User seeding complete! You can now log in at http://localhost:8000/")
 
 
 if __name__ == "__main__":

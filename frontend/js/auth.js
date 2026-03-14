@@ -32,7 +32,7 @@ function getUser() {
 function logout() {
     localStorage.removeItem(AUTH_KEY);
     localStorage.removeItem(USER_KEY);
-    window.location.href = '/app/index.html';
+    window.location.href = '/index.html';
 }
 
 /** Build Authorization header object */
@@ -50,16 +50,16 @@ function requireAuth(requiredRole = null) {
     const user = getUser();
 
     if (!token || !user) {
-        window.location.href = '/app/index.html';
+        window.location.href = '/index.html';
         return null;
     }
 
     if (requiredRole && user.role !== requiredRole) {
         // Employee trying to access admin page → send to chat
         if (requiredRole === 'admin') {
-            window.location.href = '/app/chat.html';
+            window.location.href = '/chat.html';
         } else {
-            window.location.href = '/app/index.html';
+            window.location.href = '/index.html';
         }
         return null;
     }

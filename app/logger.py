@@ -16,9 +16,31 @@ from app.database import get_log_collection
 
 _file_logger = logging.getLogger(__name__)
 
-# Ensure logs directory exists
-Path(settings.LOGS_DIR).mkdir(parents=True, exist_ok=True)
-_LOG_FILE = Path(settings.LOGS_DIR) / "queries.jsonl"
+# Ensure logs directory exists if filesystem is writable (Vercel runtime is read-only).
+_LOG_FILE = None
+try:
+    Path(settings.LOGS_DIR).mkdir(parents=True, exist_ok=True)
+    _LOG_FILE = Path(settings.LOGS_DIR) / "queries.jsonl"
+except PermissionError as exc:
+    _file_logger.warning(
+        "Local log directory '%s' is not writable (likely read-only filesystem on serverless). "
+        "File logging will be disabled. Error: %s",
+        settings.LOGS_DIR,
+        exc,
+    )
+    _LOG_FILE = None
+except OSError as exc:
+    # Some environments return EROFS via OSError.
+    if exc.errno == 30:
+        _file_logger.warning(
+            "Local log directory '%s' is not writable (read-only filesystem). "
+            "File logging will be disabled. Error: %s",
+            settings.LOGS_DIR,
+            exc,
+        )
+        _LOG_FILE = None
+    else:
+        raise
 
 
 def log_query(
@@ -59,6 +81,9 @@ def log_query(
         _file_logger.error("Failed to write query log to MongoDB: %s", exc)
 
     # ── Local JSONL ──────────────────────────────────────────────────────────
+    if _LOG_FILE is None:
+        return
+
     try:
         with _LOG_FILE.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")

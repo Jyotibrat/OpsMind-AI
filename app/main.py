@@ -299,4 +299,5 @@ async def ask_question(
 # ── Static frontend ───────────────────────────────────────────────────────────
 frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
 if os.path.isdir(frontend_path):
-    app.mount("/app", StaticFiles(directory=frontend_path, html=True), name="frontend")
+    # Serve the frontend from the site root (/) instead of under /app
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
