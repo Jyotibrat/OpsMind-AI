@@ -52,7 +52,8 @@ body {
   color:var(--text-1);
   min-height:100vh;
   -webkit-font-smoothing:antialiased;
-  overflow:hidden;
+  overflow-x:hidden;
+  overflow-y:auto;
 }
 a { color:var(--accent); text-decoration:none; transition:color var(--dur) var(--ease); }
 a:hover { color:#93b4fc; }
@@ -382,8 +383,16 @@ button { cursor:pointer; font-family:inherit; border:none; background:none; }
 
 .app-shell {
   display:flex;
-  height:100vh;
+  min-height:100vh;
   overflow:hidden;
+}
+
+.main {
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  overflow:auto;
+  background:var(--bg-base);
 }
 
 /* ── Sidebar ────────────────────────────────────────────────── */
@@ -567,13 +576,7 @@ button { cursor:pointer; font-family:inherit; border:none; background:none; }
 }
 
 /* ── Main content ───────────────────────────────────────────── */
-.main {
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-  background:var(--bg-base);
-}
+/* (styles defined earlier to allow scrolling within the main column) */
 
 /* ── Page header ────────────────────────────────────────────── */
 .page-header {

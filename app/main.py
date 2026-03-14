@@ -119,6 +119,14 @@ async def login(request: LoginRequest) -> TokenResponse:
         pass  # Already seeded or DB still unavailable; authenticate_user will raise its own error
 
     user = authenticate_user(request.username, request.password)
+
+    # If the client requested a specific role (e.g., admin portal), enforce it.
+    if request.role and request.role != user.get("role"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Incorrect role for this portal. Please use the correct login tab.",
+        )
+
     token = create_access_token(
         username=user["username"],
         role=user["role"],

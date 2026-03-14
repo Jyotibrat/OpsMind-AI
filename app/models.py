@@ -15,6 +15,10 @@ from pydantic import BaseModel, Field
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=1)
     password: str = Field(..., min_length=1)
+    role: Optional[str] = Field(
+        None,
+        description="Optional: the portal role the user is attempting to sign in as (admin/employee).",
+    )
 
 
 class TokenResponse(BaseModel):
